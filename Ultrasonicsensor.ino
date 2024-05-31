@@ -109,6 +109,24 @@ float getDistance() {
   // Calculate the distance (cm)
   float distance = duration * 0.034 / 2;
 
+// Wiring:
+// Ultrasonic Sensor:
+// VCC to Arduino 5V
+// GND to Arduino GND
+// Trig to Arduino pin 9
+// Echo to Arduino pin 8
+
+// I²C LCD:
+// SDA to Arduino A4
+// SCL to Arduino A5
+// VCC to Arduino 5V
+// GND to Arduino GND
+
+// Buttons:
+// One side of each button to the respective pin (13,
+
+
+
   return distance;
 }
 
