@@ -1,73 +1,114 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
+#include <Wire.h>
+#include <Adafruit_LiquidCrystal.h>
 
-// TFT pins
-#define TFT_CS 10
-#define TFT_RST 9
-#define TFT_DC 8
+// Initialize the Adafruit LiquidCrystal library with the I2C address
+Adafruit_LiquidCrystal lcd(0);
 
-// Ultrasonic sensor pins
-#define TRIG_PIN 7
-#define ECHO_PIN 6
+// Define pins for the buttons
+const int buttonInitial = 13;
+const int buttonFinal = 12;
+const int buttonClear = 11;
+const int buttonReset = 10;
 
-// Button pin
-#define BUTTON_PIN 5
+// Define pins for the ultrasonic sensor
+const int trigPin = 9;
+const int echoPin = 8;
 
-// Initialize the TFT display
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
-
-bool initialDataRecorded = false;
-bool finalDataRecorded = false;
+// Variables to store distance data
 float initialDistance = 0;
 float finalDistance = 0;
+bool initialRecorded = false;
+bool finalRecorded = false;
 
 void setup() {
-  pinMode(TRIG_PIN, OUTPUT);
-  pinMode(ECHO_PIN, INPUT);
-  pinMode(BUTTON_PIN, INPUT_PULLUP); // Enable internal pull-up resistor
+  // Initialize the LCD
+  lcd.begin(16, 2);
+  lcd.setBacklight(LOW);
 
-  tft.begin();
-  tft.setRotation(3);
-  tft.fillScreen(ILI9341_BLACK);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.setTextSize(2);
+  // Initialize the button pins as input with internal pull-up resistors
+  pinMode(buttonInitial, INPUT_PULLUP);
+  pinMode(buttonFinal, INPUT_PULLUP);
+  pinMode(buttonClear, INPUT_PULLUP);
+  pinMode(buttonReset, INPUT_PULLUP);
 
-  tft.setCursor(10, 10);
-  tft.print("Press button to record data");
+  // Initialize the ultrasonic sensor pins
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  // Initialize serial communication for debugging
+  Serial.begin(9600);
+
+  // Display initial message on the LCD
+  lcd.setCursor(0, 0);
+  lcd.print("Press Btn 13 to");
+  lcd.setCursor(0, 1);
+  lcd.print("Get initial Dist:");
+  delay(2000);
+  lcd.clear();
 }
 
 void loop() {
-  if (digitalRead(BUTTON_PIN) == LOW) {
-    delay(200); // Simple debouncing
-    if (!initialDataRecorded) {
-      initialDistance = getDistance();
-      initialDataRecorded = true;
-      tft.fillScreen(ILI9341_BLACK);
-      tft.setCursor(10, 10);
-      tft.print("Initial data: ");
-      tft.print(initialDistance);
-      tft.print(" cm");
-    } else if (!finalDataRecorded) {
-      finalDistance = getDistance();
-      finalDataRecorded = true;
-      tft.setCursor(10, 50);
-      tft.print("Final data: ");
-      tft.print(finalDistance);
-      tft.print(" cm");
-    }
-    while (digitalRead(BUTTON_PIN) == LOW); // Wait for button release
-    delay(200); // Simple debouncing
+  // Check if the initial distance button is pressed
+  if (digitalRead(buttonInitial) == LOW) {
+    initialDistance = getDistance();
+    initialRecorded = true;
+    lcd.setCursor(0, 0);
+    lcd.print("Initial: ");
+    lcd.print(initialDistance);
+    lcd.print(" cm");
+    delay(500); // Debounce delay
+  }
+
+  // Check if the final distance button is pressed
+  if (digitalRead(buttonFinal) == LOW) {
+    finalDistance = getDistance();
+    finalRecorded = true;
+    lcd.setCursor(0, 1);
+    lcd.print("Final: ");
+    lcd.print(finalDistance);
+    lcd.print(" cm");
+    delay(500); // Debounce delay
+  }
+
+  // Check if the clear button is pressed
+  if (digitalRead(buttonClear) == LOW) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Press Btn 13 to");
+    lcd.setCursor(0, 1);
+    lcd.print("Get initial Dist");
+    delay(500); // Debounce delay
+  }
+
+  // Check if the reset button is pressed
+  if (digitalRead(buttonReset) == LOW) {
+    initialDistance = 0;
+    finalDistance = 0;
+    initialRecorded = false;
+    finalRecorded = false;
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Data Reset");
+    delay(1000);
+    lcd.clear();
+    delay(500); // Debounce delay
   }
 }
 
 float getDistance() {
-  digitalWrite(TRIG_PIN, LOW);
+  // Send a 10us pulse to trigger pin
+  digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
+  digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
+  digitalWrite(trigPin, LOW);
 
-  long duration = pulseIn(ECHO_PIN, HIGH);
-  float distance = (duration / 2.0) * 0.0343; // Speed of sound in cm/us
+  // Read the echo pin
+  long duration = pulseIn(echoPin, HIGH);
+
+  // Calculate the distance (cm)
+  float distance = duration * 0.034 / 2;
+
   return distance;
 }
+
